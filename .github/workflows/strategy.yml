@@ -34,6 +34,7 @@ jobs:
           echo "BRANCH_KEY=master" >> $GITHUB_ENV
         else
           echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
+        fi
 
     - name: Get Short Commit Hash
       id: get-hash
@@ -55,12 +56,4 @@ jobs:
       id: generate-version
       run: |
         APP_VERSION="4.5.24"
-        if [[ "${{ env.BRANCH_KEY }}" == "UNKNOWN" ]]; then
-          VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${{ env.INCREMENT }}"
-        else
-          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
-        fi
-        echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
-
-    - name: Display Version String
-      run: echo "Version String is ${{ env.VERSION_STRING }}"
+        if [[ "${{ env.BRANCH_KEY }}" == "
