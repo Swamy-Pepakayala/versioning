@@ -5,9 +5,9 @@ on:
     # branches:
     #   - '**'
     branches:
-      - master/
-      - release/
-      - hotfix/*
+      - master
+      - release
+      - hotfix
 jobs:
   generate-version:
     runs-on: ubuntu-latest
