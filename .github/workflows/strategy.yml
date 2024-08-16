@@ -1,4 +1,4 @@
-name:  Version Increment
+name: Generate Version
 
 on:
   push:
@@ -59,6 +59,11 @@ jobs:
           NEW_INCREMENT=$((LAST_INCREMENT + 1))
           echo $NEW_INCREMENT > ${{ env.INCREMENT_FILE }}
           echo "incremental_number=$NEW_INCREMENT" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Debug incremental number
+        run: echo "Incremental number is: ${{ env.incremental_number }}"
+        shell: bash
 
       - name: Generate version string
         id: version
@@ -69,6 +74,17 @@ jobs:
             VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ env.incremental_number }}"
           fi
           echo "version_string=$VERSION_STRING" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Debug variables
+        run: |
+          echo "branch_name=${{ env.branch_name }}"
+          echo "short_commit=${{ env.short_commit }}"
+          echo "branch_key=${{ env.branch_key }}"
+          echo "branch_specific=${{ env.branch_specific }}"
+          echo "incremental_number=${{ env.incremental_number }}"
+        shell: bash
 
       - name: Output version string
-        run: echo "Generated version string:${{ env.version_string }}"
+        run: echo "Generated version string: ${{ env.version_string }}"
+        shell: bash
