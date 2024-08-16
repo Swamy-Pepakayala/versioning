@@ -2,9 +2,12 @@ name: Generate Version String
  
 on:
   push:
+    # branches:
+    #   - '**'
     branches:
-      - '**'
- 
+      - master/
+      - release/
+      - hotfix/*
 jobs:
   generate-version:
     runs-on: ubuntu-latest
