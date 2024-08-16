@@ -34,6 +34,7 @@ jobs:
         run: |
           # Increment the number
           CURRENT_INCREMENT=${{ env.INCREMENT }}
+          echo "Current Increment: $CURRENT_INCREMENT"
           NEW_INCREMENT=$(( CURRENT_INCREMENT + 1 ))
 
           # Write the new increment value to a file
