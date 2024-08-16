@@ -62,7 +62,7 @@ jobs:
         shell: bash
 
       - name: Debug incremental number
-        run: echo "Incremental number is: ${{ env.incremental_number }}"
+        run: echo "Incremental number is:${{ env.incremental_number }}"
         shell: bash
 
       - name: Generate version string
@@ -86,5 +86,5 @@ jobs:
         shell: bash
 
       - name: Output version string
-        run: echo "Generated version string: ${{ env.version_string }}"
+        run: echo "Generated version string:${{ env.version_string }}"
         shell: bash
