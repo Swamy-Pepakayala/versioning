@@ -128,5 +128,5 @@ jobs:
           name: incremental-number
           path: incremental-number.txt
 
-      - name: Output version
-        run: echo "Version: ${{ env.VERSION }}"
+      # - name: Output version
+      #   run: echo "Version: ${{ env.VERSION }}"
