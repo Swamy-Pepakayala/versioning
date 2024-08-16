@@ -1,4 +1,4 @@
-name: Increment Version 
+name: Increment Version Number
 
 on:
   push:
@@ -38,6 +38,7 @@ jobs:
 
           # Write the new increment value to a file
           echo $NEW_INCREMENT > .increment
+
           # Encode the new increment file content to base64
           base64 .increment | tr -d '\n' > new_increment.b64
           echo "NEW_INCREMENT=$NEW_INCREMENT" >> $GITHUB_ENV
