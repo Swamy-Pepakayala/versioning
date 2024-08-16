@@ -19,29 +19,23 @@ jobs:
       - name: Fetch Incremental Number
         id: fetch-increment
         run: |
-          # Fetch the .increment file content using GitHub REST API
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/repos/${{ github.repository }}/contents/.increment \
                -o increment.json
-          # Extract content and decode base64
           INCREMENT=$(jq -r '.content' increment.json | base64 -d)
           echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
 
       - name: Increment Number
         id: increment
         run: |
-          # Increment the number
           NEW_INCREMENT=$(( ${{ env.INCREMENT }} + 1 ))
-          # Encode the new number in base64 for updating
           echo $NEW_INCREMENT | base64 > new_increment.b64
           echo "NEW_INCREMENT=$NEW_INCREMENT" >> $GITHUB_ENV
 
       - name: Update Incremental Number
         run: |
-          # Get file SHA for update
           FILE_SHA=$(jq -r '.sha' increment.json)
-          # Update the .increment file using GitHub REST API
           curl -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"message\":\"Update increment number\",\"content\":\"$(cat new_increment.b64)\",\"sha\":\"$FILE_SHA\"}" \
