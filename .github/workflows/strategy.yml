@@ -22,7 +22,7 @@ jobs:
           # Fetch the .increment file from the repository
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/repos/${{ github.repository }}/contents/.increment \
+               https://api.github.com/repos/Swamy-Pepakayala/versioning/contents/.increment?ref=master \
                -o increment.json
           # Extract content and decode from base64
           FILE_CONTENT=$(jq -r '.content' increment.json)
@@ -52,7 +52,7 @@ jobs:
           curl -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"message\":\"Update increment number\",\"content\":\"$(cat new_increment.b64)\",\"sha\":\"$FILE_SHA\"}" \
-               https://api.github.com/repos/${{ github.repository }}/contents/.increment
+               https://api.github.com/repos/Swamy-Pepakayala/versioning/contents/.increment?ref=master
 
       - name: Generate Version String
         id: generate-version
