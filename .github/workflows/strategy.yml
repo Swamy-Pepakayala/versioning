@@ -24,35 +24,32 @@ jobs:
 
       - name: Get branch name
         id: vars
-        run: echo "::set-output name=branch_name::$(echo ${GITHUB_REF#refs/heads/})"
-        shell: bash
+        run: echo "branch_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Get short commit hash
         id: commit
-        run: echo "::set-output name=short_commit::$(git rev-parse --short HEAD)"
-        shell: bash
+        run: echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Determine branch key and name
         id: branchkey
         run: |
-          BRANCH=${{ steps.vars.outputs.branch_name }}
+          BRANCH="${{ env.branch_name }}"
           if [[ "$BRANCH" == release/* ]]; then
-            echo "::set-output name=branch_key::REL"
-            echo "::set-output name=branch_specific::${BRANCH#release/}"
+            echo "branch_key=REL" >> $GITHUB_ENV
+            echo "branch_specific=${BRANCH#release/}" >> $GITHUB_ENV
           elif [[ "$BRANCH" == integration/* ]]; then
-            echo "::set-output name=branch_key::INT"
-            echo "::set-output name=branch_specific::${BRANCH#integration/}"
+            echo "branch_key=INT" >> $GITHUB_ENV
+            echo "branch_specific=${BRANCH#integration/}" >> $GITHUB_ENV
           elif [[ "$BRANCH" == hotfix/* ]]; then
-            echo "::set-output name=branch_key::HTX"
-            echo "::set-output name=branch_specific::${BRANCH#hotfix/}"
+            echo "branch_key=HTX" >> $GITHUB_ENV
+            echo "branch_specific=${BRANCH#hotfix/}" >> $GITHUB_ENV
           elif [[ "$BRANCH" == master ]]; then
-            echo "::set-output name=branch_key::master"
-            echo "::set-output name=branch_specific::master"
+            echo "branch_key=master" >> $GITHUB_ENV
+            echo "branch_specific=master" >> $GITHUB_ENV
           else
-            echo "::set-output name=branch_key::"
-            echo "::set-output name=branch_specific::$BRANCH"
+            echo "branch_key=" >> $GITHUB_ENV
+            echo "branch_specific=$BRANCH" >> $GITHUB_ENV
           fi
-        shell: bash
 
       - name: Incremental number setup
         id: increment
@@ -61,22 +58,20 @@ jobs:
           LAST_INCREMENT=$(cat ${{ env.INCREMENT_FILE }})
           NEW_INCREMENT=$((LAST_INCREMENT + 1))
           echo $NEW_INCREMENT > ${{ env.INCREMENT_FILE }}
-          echo "::set-output name=incremental_number::$NEW_INCREMENT"
-        shell: bash
+          echo "incremental_number=$NEW_INCREMENT" >> $GITHUB_ENV
 
       - name: Generate version string
         id: version
         run: |
-          if [[ "${{ steps.branchkey.outputs.branch_key }}" != "" ]]; then
-            VERSION_STRING="${{ env.APP_VERSION }}-${{ steps.branchkey.outputs.branch_key }}-${{ steps.branchkey.outputs.branch_specific }}-${{ steps.commit.outputs.short_commit }}-${{ steps.increment.outputs.incremental_number }}"
+          if [[ "${{ env.branch_key }}" != "" ]]; then
+            VERSION_STRING="${{ env.APP_VERSION }}-${{ env.branch_key }}-${{ env.branch_specific }}-${{ env.short_commit }}-${{ env.incremental_number }}"
           else
-            VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ steps.increment.outputs.incremental_number }}"
+            VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ env.incremental_number }}"
           fi
-          echo "::set-output name=version_string::$VERSION_STRING"
-        shell: bash
+          echo "version_string=$VERSION_STRING" >> $GITHUB_ENV
 
       - name: Output version string
-        run: echo "Generated version string: ${{ steps.version.outputs.version_string }}"
+        run: echo "Generated version string: ${{ env.version_string }}"
 
       - name: Persist incremental number
         uses: actions/upload-artifact@v2
