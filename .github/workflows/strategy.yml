@@ -59,6 +59,7 @@
 #       run: echo "Version String is ${{ env.VERSION_STRING }}"
 
 
+
 name: Versioning Workflow
 
 on:
@@ -67,8 +68,10 @@ on:
       - '*'
 
 jobs:
-  version:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      incremental_number: ${{ steps.increment-number.outputs.incremental_number }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -93,11 +96,6 @@ jobs:
           echo "BRANCH_KEY=${BRANCH_KEY}" >> $GITHUB_ENV
           echo "SHORT_COMMIT_HASH=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
 
-      - name: Download incremental number
-        uses: actions/download-artifact@v3
-        with:
-          name: incremental-number
-
       - name: Read and increment number
         id: increment-number
         run: |
@@ -108,7 +106,33 @@ jobs:
             INCREMENTAL_NUMBER=1
           fi
           echo "${INCREMENTAL_NUMBER}" > incremental-number.txt
-          echo "INCREMENTAL_NUMBER=${INCREMENTAL_NUMBER}" >> $GITHUB_ENV
+          echo "incremental_number=${INCREMENTAL_NUMBER}" >> $GITHUB_ENV
+
+      - name: Upload incremental number
+        uses: actions/upload-artifact@v3
+        with:
+          name: incremental-number
+          path: incremental-number.txt
+
+  version:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download incremental number
+        uses: actions/download-artifact@v3
+        with:
+          name: incremental-number
+
+      - name: Read and use incremental number
+        id: read-number
+        run: |
+          if [ -f incremental-number.txt ]; then
+            INCREMENTAL_NUMBER=$(cat incremental-number.txt)
+            echo "INCREMENTAL_NUMBER=${INCREMENTAL_NUMBER}" >> $GITHUB_ENV
+          else
+            echo "Error: incremental-number.txt not found."
+            exit 1
+          fi
 
       - name: Generate version
         id: generate-version
@@ -122,11 +146,5 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "Version generated: ${VERSION}"
 
-      - name: Upload updated incremental number
-        uses: actions/upload-artifact@v3
-        with:
-          name: incremental-number
-          path: incremental-number.txt
 
-      # - name: Output version
-      #   run: echo "Version: ${{ env.VERSION }}"
+
