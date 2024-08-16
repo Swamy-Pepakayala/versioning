@@ -27,33 +27,4 @@ jobs:
         if [[ "$BRANCH_NAME" == release* ]]; then
           echo "BRANCH_KEY=REL" >> $GITHUB_ENV
         elif [[ "$BRANCH_NAME" == integration* ]]; then
-          echo "BRANCH_KEY=INT" >> $GITHUB_ENV
-        elif [[ "$BRANCH_NAME" == hotfix* ]]; then
-          echo "BRANCH_KEY=HTX" >> $GITHUB_ENV
-        elif [[ "$BRANCH_NAME" == master ]]; then
-          echo "BRANCH_KEY=master" >> $GITHUB_ENV
-        else
-          echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
-        fi
-
-    - name: Get Short Commit Hash
-      id: get-hash
-      run: echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
-    - name: Incremental Number
-      id: get-increment
-      run: |
-        if [ -f .increment ]; then
-          INCREMENT=$(cat .increment)
-          INCREMENT=$((INCREMENT + 1))
-        else
-          INCREMENT=1
-        fi
-        echo $INCREMENT > .increment
-        echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
-
-    - name: Generate Version String
-      id: generate-version
-      run: |
-        APP_VERSION="4.5.24"
-        if [[ "${{ env.BRANCH_KEY }}" == "
+          echo "BR
