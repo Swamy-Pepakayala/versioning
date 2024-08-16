@@ -7,15 +7,25 @@ on:
       - release/*
       - hotfix/*
       - integration/*
-
+  
 jobs:
   generate-version:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
+    # - name: Checkout code
+    #   uses: actions/checkout@v4
+    - name: Checkout Source Code
+    #   uses: ./.github/workflows/main.yml@Github-actions_Aryan
+      uses: actions/checkout@v4.1.0
+      env:
+        REPO_NAME: "Swamy-Pepakayala/versioning"
+      with:
+        repository: "${{ env.REPO_NAME}}"
+         # ref: 
+        # token: ${{ inputs.ghToken}}
+        clean: false
+        
     - name: Set Branch Key
       id: set-key
       run: |
