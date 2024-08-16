@@ -45,15 +45,37 @@ jobs:
             echo "branch_specific=$BRANCH" >> $GITHUB_ENV
           fi
 
+      - name: Checkout Increment File
+        run: git fetch origin main && git checkout origin/main .increment || true
+
+      - name: Increment Number
+        id: increment
+        run: |
+          if [ ! -f .increment ]; then echo 0 > .increment; fi
+          LAST_INCREMENT=$(cat .increment)
+          NEW_INCREMENT=$((LAST_INCREMENT + 1))
+          echo $NEW_INCREMENT > .increment
+          echo "incremental_number=$NEW_INCREMENT" >> $GITHUB_ENV
+
+      - name: Commit Increment File
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add .increment
+          git commit -m "Update incremental number to ${{ env.incremental_number }}" || echo "No changes to commit"
+
       - name: Generate version string
         id: version
         run: |
           if [[ "${{ env.branch_key }}" != "" ]]; then
-            VERSION_STRING="${{ env.APP_VERSION }}-${{ env.branch_key }}-${{ env.branch_specific }}-${{ env.short_commit }}-${{ github.run_attempt }}"
+            VERSION_STRING="${{ env.APP_VERSION }}-${{ env.branch_key }}-${{ env.branch_specific }}-${{ env.short_commit }}-${{ env.incremental_number }}"
           else
-            VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ github.run_attempt }}"
+            VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ env.incremental_number }}"
           fi
           echo "version_string=$VERSION_STRING" >> $GITHUB_ENV
 
       - name: Output version string
         run: echo "Generated version string:${{ env.version_string }}"
+
+      - name: Push Increment File
+        run: git push origin HEAD:master
