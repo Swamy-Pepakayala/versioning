@@ -1,59 +1,132 @@
-name: branching version
+# name: branching version
  
+# on:
+#   push:
+#     # branches:
+#     #   - '**'
+#     branches:
+#       - master
+#       - release
+#       - hotfix
+# jobs:
+#   generate-version:
+#     runs-on: ubuntu-latest
+ 
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v2
+ 
+#     - name: Set Branch Key
+#       id: set-key
+#       run: |
+#         BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+#         if [[ "$BRANCH_NAME" == release* ]]; then
+#           echo "BRANCH_KEY=REL" >> $GITHUB_ENV
+#         elif [[ "$BRANCH_NAME" == integration* ]]; then
+#           echo "BRANCH_KEY=INT" >> $GITHUB_ENV
+#         elif [[ "$BRANCH_NAME" == hotfix* ]]; then
+#           echo "BRANCH_KEY=HTX" >> $GITHUB_ENV
+#         elif [[ "$BRANCH_NAME" == master ]]; then
+#           echo "BRANCH_KEY=master" >> $GITHUB_ENV
+#         else
+#           echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
+#         fi
+ 
+#     - name: Get Short Commit Hash
+#       id: get-hash
+#       run: echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+ 
+#     - name: Incremental Number
+#       id: get-increment
+#       run: |
+#         if [ -f .increment ]; then
+#           INCREMENT=$(cat .increment)
+#           INCREMENT=$((INCREMENT + 1))
+#         else
+#           INCREMENT=1
+#         fi
+#         echo $INCREMENT > .increment
+#         echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
+ 
+#     - name: Generate Version String
+#       id: generate-version
+#       run: |
+#         APP_VERSION="4.5.24"
+#         VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
+#         echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
+ 
+#     - name: Display Version String
+#       run: echo "Version String is ${{ env.VERSION_STRING }}"
+
+
+name: Versioning Workflow
+
 on:
   push:
-    # branches:
-    #   - '**'
     branches:
-      - master
-      - release
-      - hotfix
+      - '*'
+
 jobs:
-  generate-version:
+  version:
     runs-on: ubuntu-latest
- 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
- 
-    - name: Set Branch Key
-      id: set-key
-      run: |
-        BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
-        if [[ "$BRANCH_NAME" == release* ]]; then
-          echo "BRANCH_KEY=REL" >> $GITHUB_ENV
-        elif [[ "$BRANCH_NAME" == integration* ]]; then
-          echo "BRANCH_KEY=INT" >> $GITHUB_ENV
-        elif [[ "$BRANCH_NAME" == hotfix* ]]; then
-          echo "BRANCH_KEY=HTX" >> $GITHUB_ENV
-        elif [[ "$BRANCH_NAME" == master ]]; then
-          echo "BRANCH_KEY=master" >> $GITHUB_ENV
-        else
-          echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
-        fi
- 
-    - name: Get Short Commit Hash
-      id: get-hash
-      run: echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
- 
-    - name: Incremental Number
-      id: get-increment
-      run: |
-        if [ -f .increment ]; then
-          INCREMENT=$(cat .increment)
-          INCREMENT=$((INCREMENT + 1))
-        else
-          INCREMENT=1
-        fi
-        echo $INCREMENT > .increment
-        echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
- 
-    - name: Generate Version String
-      id: generate-version
-      run: |
-        APP_VERSION="4.5.24"
-        VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
-        echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
- 
-    - name: Display Version String
-      run: echo "Version String is ${{ env.VERSION_STRING }}"
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get branch information
+        id: branch-info
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          if [[ $BRANCH_NAME == release/* ]]; then
+            BRANCH_KEY="REL"
+          elif [[ $BRANCH_NAME == integration/* ]]; then
+            BRANCH_KEY="INT"
+          elif [[ $BRANCH_NAME == hotfix/* ]]; then
+            BRANCH_KEY="HTX"
+          elif [[ $BRANCH_NAME == master ]]; then
+            BRANCH_KEY="master"
+          else
+            BRANCH_KEY="other"
+          fi
+          SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+          echo "BRANCH_KEY=${BRANCH_KEY}" >> $GITHUB_ENV
+          echo "SHORT_COMMIT_HASH=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
+
+      - name: Download incremental number
+        uses: actions/download-artifact@v3
+        with:
+          name: incremental-number
+
+      - name: Read and increment number
+        id: increment-number
+        run: |
+          if [ -f incremental-number.txt ]; then
+            INCREMENTAL_NUMBER=$(cat incremental-number.txt)
+            INCREMENTAL_NUMBER=$((INCREMENTAL_NUMBER + 1))
+          else
+            INCREMENTAL_NUMBER=1
+          fi
+          echo "${INCREMENTAL_NUMBER}" > incremental-number.txt
+          echo "INCREMENTAL_NUMBER=${INCREMENTAL_NUMBER}" >> $GITHUB_ENV
+
+      - name: Generate version
+        id: generate-version
+        run: |
+          WORKFLOW_RUN_ID=${GITHUB_RUN_ID}
+          if [[ $BRANCH_KEY == "other" ]]; then
+            VERSION="4.5.24-${WORKFLOW_RUN_ID}-${INCREMENTAL_NUMBER}"
+          else
+            VERSION="4.5.24-${BRANCH_KEY}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${INCREMENTAL_NUMBER}"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "Version generated: ${VERSION}"
+
+      - name: Upload updated incremental number
+        uses: actions/upload-artifact@v3
+        with:
+          name: incremental-number
+          path: incremental-number.txt
+
+      - name: Output version
+        run: echo "Version: ${{ env.VERSION }}"
