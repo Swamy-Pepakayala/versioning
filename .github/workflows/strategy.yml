@@ -1,0 +1,58 @@
+
+name: Generate Branch Key
+ 
+on:
+
+  push:
+
+    branches:
+
+      - '**'
+ 
+jobs:
+
+  generate-key:
+
+    runs-on: ubuntu-latest
+ 
+    steps:
+
+    - name: Checkout code
+
+      uses: actions/checkout@v2
+ 
+    - name: Set Branch Key
+
+      id: set-key
+
+      run: |
+
+        BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+
+        if [[ "$BRANCH_NAME" == release* ]]; then
+
+          echo "BRANCH_KEY=REL" >> $GITHUB_ENV
+
+        elif [[ "$BRANCH_NAME" == integration* ]]; then
+
+          echo "BRANCH_KEY=INT" >> $GITHUB_ENV
+
+        elif [[ "$BRANCH_NAME" == hotfix* ]]; then
+
+          echo "BRANCH_KEY=HTX" >> $GITHUB_ENV
+
+        elif [[ "$BRANCH_NAME" == master ]]; then
+
+          echo "BRANCH_KEY=master" >> $GITHUB_ENV
+
+        else
+
+          echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
+
+        fi
+ 
+    - name: Display Branch Key
+
+      run: echo "Branch Key is ${{ env.BRANCH_KEY }}"
+
+ 
