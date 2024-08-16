@@ -1,21 +1,21 @@
 name: branching version
- 
+
 on:
   push:
-    # branches:
-    #   - '**'
     branches:
-      - master/
-      - release/
-      - hotfix/
+      - master
+      - release/*
+      - hotfix/*
+      - integration/*
+
 jobs:
   generate-version:
     runs-on: ubuntu-latest
- 
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
- 
+      uses: actions/checkout@v3
+
     - name: Set Branch Key
       id: set-key
       run: |
@@ -31,11 +31,11 @@ jobs:
         else
           echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
         fi
- 
+
     - name: Get Short Commit Hash
       id: get-hash
       run: echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
- 
+
     - name: Incremental Number
       id: get-increment
       run: |
@@ -47,15 +47,13 @@ jobs:
         fi
         echo $INCREMENT > .increment
         echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
- 
+
     - name: Generate Version String
       id: generate-version
       run: |
         APP_VERSION="4.5.24"
         VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
         echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
- 
+
     - name: Display Version String
       run: echo "Version String is ${{ env.VERSION_STRING }}"
-
-
