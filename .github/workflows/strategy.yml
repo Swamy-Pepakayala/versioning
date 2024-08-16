@@ -70,8 +70,8 @@ jobs:
           fi
           echo "version_string=$VERSION_STRING" >> $GITHUB_ENV
 
-      - name: Output version string
-        run: echo "Generated version string: ${{ env.version_string }}"
+      # - name: Output version string
+      #   run: echo "Generated version string: ${{ env.version_string }}"
 
       - name: Persist incremental number
         uses: actions/upload-artifact@v2
