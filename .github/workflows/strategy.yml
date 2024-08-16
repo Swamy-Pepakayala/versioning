@@ -1,4 +1,4 @@
-name: Generate Version
+name: Incremental Version
 
 on:
   push:
