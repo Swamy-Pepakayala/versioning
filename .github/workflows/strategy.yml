@@ -55,22 +55,22 @@ jobs:
       run: |
         APP_VERSION="4.5.24"
         if [[ "${{ env.BRANCH_KEY }}" == "OTHER" ]]; then
-          VERSION_STRING="${APP_VERSION}-${{ env.RUN_ID }}-${{ env.INCREMENT }}"
+          VERSION_STRING="${APP_VERSION}-${{ env.RUN_ID }}-${{ env.INCREMENT+1 }}"
         else
-          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
+          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT+1 }}"
         fi
         echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
     - name: Display Version String
       run: echo "Version String is ${{ env.VERSION_STRING }}"
 
-    - name: Commit Increment File
-      if: always()
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        if git ls-files .increment_* > /dev/null 2>&1; then
-          git add .increment_*
-          git commit -m "Update incremental number for $BRANCH_NAME"
-          git push
-        fi
+    # - name: Commit Increment File
+    #   if: always()
+    #   run: |
+    #     git config --global user.name "github-actions[bot]"
+    #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    #     if git ls-files .increment_* > /dev/null 2>&1; then
+    #       git add .increment_*
+    #       git commit -m "Update incremental number for $BRANCH_NAME"
+    #       git push
+    #     fi
