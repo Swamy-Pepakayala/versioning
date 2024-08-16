@@ -55,9 +55,9 @@ jobs:
       run: |
         APP_VERSION="4.5.24"
         if [[ "${{ env.BRANCH_KEY }}" == "OTHER" ]]; then
-          VERSION_STRING="${APP_VERSION}-${{ env.RUN_ID }}-${{ env.INCREMENT+1 }}"
+          VERSION_STRING="${APP_VERSION}-${{ env.RUN_ID }}-${{ env.INCREMENT }}"
         else
-          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT+1 }}"
+          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
         fi
         echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
