@@ -1,58 +1,74 @@
+name: Generate Version String
 
-name: Generate Branch Key
- 
 on:
-
   push:
-
-    branches:
-
+    branches: 
       - '**'
- 
+
 jobs:
-
-  generate-key:
-
+  generate-version:
     runs-on: ubuntu-latest
- 
+
     steps:
-
     - name: Checkout code
-
       uses: actions/checkout@v2
- 
+
     - name: Set Branch Key
-
       id: set-key
-
       run: |
-
         BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
-
         if [[ "$BRANCH_NAME" == release* ]]; then
-
           echo "BRANCH_KEY=REL" >> $GITHUB_ENV
-
         elif [[ "$BRANCH_NAME" == integration* ]]; then
-
           echo "BRANCH_KEY=INT" >> $GITHUB_ENV
-
         elif [[ "$BRANCH_NAME" == hotfix* ]]; then
-
           echo "BRANCH_KEY=HTX" >> $GITHUB_ENV
-
         elif [[ "$BRANCH_NAME" == master ]]; then
-
           echo "BRANCH_KEY=master" >> $GITHUB_ENV
-
         else
+          echo "BRANCH_KEY=OTHER" >> $GITHUB_ENV
 
-          echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
+    - name: Get Short Commit Hash
+      id: get-hash
+      run: echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+    - name: Get Run ID
+      if: env.BRANCH_KEY == 'OTHER'
+      run: echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+
+    - name: Incremental Number
+      id: get-increment
+      run: |
+        BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+        INCREMENT_FILE=".increment_${BRANCH_NAME}"
+        if [ -f "$INCREMENT_FILE" ]; then
+          INCREMENT=$(cat "$INCREMENT_FILE")
+          INCREMENT=$((INCREMENT + 1))
+        else
+          INCREMENT=1
         fi
- 
-    - name: Display Branch Key
+        echo $INCREMENT > "$INCREMENT_FILE"
+        echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
 
-      run: echo "Branch Key is ${{ env.BRANCH_KEY }}"
+    - name: Generate Version String
+      id: generate-version
+      run: |
+        APP_VERSION="4.5.24"
+        if [[ "${{ env.BRANCH_KEY }}" == "OTHER" ]]; then
+          VERSION_STRING="${APP_VERSION}-${{ env.RUN_ID }}-${{ env.INCREMENT }}"
+        else
+          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
+        fi
+        echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
- 
+    - name: Display Version String
+      run: echo "Version String is ${{ env.VERSION_STRING }}"
+
+    - name: Commit Increment File
+      if: always()
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add .increment_*
+        git commit -m "Update incremental number for $BRANCH_NAME"
+        git push
