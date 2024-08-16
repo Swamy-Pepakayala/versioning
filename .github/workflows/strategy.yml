@@ -1,18 +1,18 @@
 name: Generate Version String
-
+ 
 on:
   push:
-    branches: 
+    branches:
       - '**'
-
+ 
 jobs:
   generate-version:
     runs-on: ubuntu-latest
-
+ 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-
+ 
     - name: Set Branch Key
       id: set-key
       run: |
@@ -27,15 +27,15 @@ jobs:
           echo "BRANCH_KEY=master" >> $GITHUB_ENV
         else
           echo "BRANCH_KEY=OTHER" >> $GITHUB_ENV
-
+ 
     - name: Get Short Commit Hash
       id: get-hash
       run: echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
+ 
     - name: Get Run ID
       if: env.BRANCH_KEY == 'OTHER'
       run: echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
-
+ 
     - name: Incremental Number
       id: get-increment
       run: |
@@ -49,7 +49,7 @@ jobs:
         fi
         echo $INCREMENT > "$INCREMENT_FILE"
         echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
-
+ 
     - name: Generate Version String
       id: generate-version
       run: |
@@ -60,10 +60,10 @@ jobs:
           VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
         fi
         echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
-
+ 
     - name: Display Version String
       run: echo "Version String is ${{ env.VERSION_STRING }}"
-
+ 
     - name: Commit Increment File
       if: always()
       run: |
