@@ -23,14 +23,15 @@ jobs:
                -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/repos/${{ github.repository }}/contents/.increment \
                -o increment.json
-          INCREMENT=$(jq -r '.content' increment.json | base64 -d)
+          FILE_CONTENT=$(jq -r '.content' increment.json)
+          INCREMENT=$(echo "$FILE_CONTENT" | base64 -d)
           echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
-
+          
       - name: Increment Number
         id: increment
         run: |
           NEW_INCREMENT=$(( ${{ env.INCREMENT }} + 1 ))
-          echo $NEW_INCREMENT | base64 > new_increment.b64
+          echo $NEW_INCREMENT | base64 | tr -d '\n' > new_increment.b64
           echo "NEW_INCREMENT=$NEW_INCREMENT" >> $GITHUB_ENV
 
       - name: Update Incremental Number
@@ -57,10 +58,11 @@ jobs:
             BRANCH_KEY="master"
           fi
           SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          RUN_ATTEMPT=${{ github.run_attempt }}
           if [[ "$BRANCH_KEY" == "UNKNOWN" ]]; then
-            VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${{ env.NEW_INCREMENT }}"
+            VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
           else
-            VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${{ env.NEW_INCREMENT }}"
+            VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
           fi
           echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
