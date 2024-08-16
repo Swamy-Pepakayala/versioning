@@ -1,83 +1,85 @@
-name: Increment Version Number
+name: Generate Version
 
 on:
   push:
     branches:
-      - master
-      - release/*
-      - integration/*
-      - hotfix/*
-      - "**"
+      - '**'
 
 jobs:
   generate-version:
     runs-on: ubuntu-latest
+
+    env:
+      APP_VERSION: 4.5.24
+      INCREMENT_FILE: .increment
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Fetch Incremental Number
-        id: fetch-increment
+      - name: Set up Git
         run: |
-          # Fetch the .increment file from the repository
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/repos/Swamy-Pepakayala/versioning/contents/.increment?ref=master \
-               -o increment.json
-          # Extract content and decode from base64
-          FILE_CONTENT=$(jq -r '.content' increment.json)
-          INCREMENT=$(echo "$FILE_CONTENT" | base64 -d)
-          echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
+          git fetch --prune --unshallow
+          git config --global --add safe.directory /github/workspace
 
-      - name: Increment Number
+      - name: Get branch name
+        id: vars
+        run: echo "::set-output name=branch_name::$(echo ${GITHUB_REF#refs/heads/})"
+        shell: bash
+
+      - name: Get short commit hash
+        id: commit
+        run: echo "::set-output name=short_commit::$(git rev-parse --short HEAD)"
+        shell: bash
+
+      - name: Determine branch key and name
+        id: branchkey
+        run: |
+          BRANCH=${{ steps.vars.outputs.branch_name }}
+          if [[ "$BRANCH" == release/* ]]; then
+            echo "::set-output name=branch_key::REL"
+            echo "::set-output name=branch_specific::${BRANCH#release/}"
+          elif [[ "$BRANCH" == integration/* ]]; then
+            echo "::set-output name=branch_key::INT"
+            echo "::set-output name=branch_specific::${BRANCH#integration/}"
+          elif [[ "$BRANCH" == hotfix/* ]]; then
+            echo "::set-output name=branch_key::HTX"
+            echo "::set-output name=branch_specific::${BRANCH#hotfix/}"
+          elif [[ "$BRANCH" == master ]]; then
+            echo "::set-output name=branch_key::master"
+            echo "::set-output name=branch_specific::master"
+          else
+            echo "::set-output name=branch_key::"
+            echo "::set-output name=branch_specific::$BRANCH"
+          fi
+        shell: bash
+
+      - name: Incremental number setup
         id: increment
         run: |
-          # Increment the number
-          CURRENT_INCREMENT=${{ env.INCREMENT }}
-          echo "Current Increment: $CURRENT_INCREMENT"
-          NEW_INCREMENT=$(( CURRENT_INCREMENT + 1 ))
+          if [ ! -f ${{ env.INCREMENT_FILE }} ]; then echo 0 > ${{ env.INCREMENT_FILE }}; fi
+          LAST_INCREMENT=$(cat ${{ env.INCREMENT_FILE }})
+          NEW_INCREMENT=$((LAST_INCREMENT + 1))
+          echo $NEW_INCREMENT > ${{ env.INCREMENT_FILE }}
+          echo "::set-output name=incremental_number::$NEW_INCREMENT"
+        shell: bash
 
-          # Write the new increment value to a file
-          echo $NEW_INCREMENT > .increment
-
-          # Encode the new increment file content to base64
-          base64 .increment | tr -d '\n' > new_increment.b64
-          echo "NEW_INCREMENT=$NEW_INCREMENT" >> $GITHUB_ENV
-
-      - name: Update Incremental Number
+      - name: Generate version string
+        id: version
         run: |
-          # Fetch the SHA of the existing .increment file
-          FILE_SHA=$(jq -r '.sha' increment.json)
-          
-          # Update the .increment file in the repository
-          curl -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               -d "{\"message\":\"Update increment number\",\"content\":\"$(cat new_increment.b64)\",\"sha\":\"$FILE_SHA\"}" \
-               https://api.github.com/repos/Swamy-Pepakayala/versioning/contents/.increment?ref=master
-
-      - name: Generate Version String
-        id: generate-version
-        run: |
-          APP_VERSION="4.5.24"
-          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
-          BRANCH_KEY="UNKNOWN"
-          if [[ "$BRANCH_NAME" == release* ]]; then
-            BRANCH_KEY="REL"
-          elif [[ "$BRANCH_NAME" == integration* ]]; then
-            BRANCH_KEY="INT"
-          elif [[ "$BRANCH_NAME" == hotfix* ]]; then
-            BRANCH_KEY="HTX"
-          elif [[ "$BRANCH_NAME" == master ]]; then
-            BRANCH_KEY="master"
-          fi
-          SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
-          RUN_ATTEMPT=${{ github.run_attempt }}
-          if [[ "$BRANCH_KEY" == "UNKNOWN" ]]; then
-            VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
+          if [[ "${{ steps.branchkey.outputs.branch_key }}" != "" ]]; then
+            VERSION_STRING="${{ env.APP_VERSION }}-${{ steps.branchkey.outputs.branch_key }}-${{ steps.branchkey.outputs.branch_specific }}-${{ steps.commit.outputs.short_commit }}-${{ steps.increment.outputs.incremental_number }}"
           else
-            VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
+            VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ steps.increment.outputs.incremental_number }}"
           fi
-          echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
+          echo "::set-output name=version_string::$VERSION_STRING"
+        shell: bash
 
-      - name: Display Version String
-        run: echo "Version String is ${{ env.VERSION_STRING }}"
+      - name: Output version string
+        run: echo "Generated version string: ${{ steps.version.outputs.version_string }}"
+
+      - name: Persist incremental number
+        uses: actions/upload-artifact@v2
+        with:
+          name: increment-file
+          path: ${{ env.INCREMENT_FILE }}
