@@ -1,4 +1,4 @@
-name: Generate Version String
+name: branching version
  
 on:
   push:
