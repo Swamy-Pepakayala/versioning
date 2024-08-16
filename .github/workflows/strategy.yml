@@ -7,7 +7,7 @@ on:
       - release/*
       - integration/*
       - hotfix/*
-      - "*"
+      - "**"
 jobs:
   generate-version:
     runs-on: ubuntu-latest
