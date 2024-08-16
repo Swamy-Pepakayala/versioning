@@ -4,30 +4,22 @@ on:
   push:
     branches:
       - master
-      - release
-      - hotfix
-      - integration
-  
+      - release/*
+      - integration/*
+      - hotfix/*
+      - feature/*
+      - '*'
+
 jobs:
   generate-version:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       with:
         ref: ${{ github.ref }}
-    # - name: Checkout Source Code
-    #   uses: ./.github/workflows/main.yml@Github-actions_Aryan
-      # uses: actions/checkout@v4.1.0
-      # env:
-      #   REPO_NAME: "Swamy-Pepakayala/versioning"
-      # with:
-      #   repository: "${{ env.REPO_NAME}}"
-      #    # ref: 
-      #   # token: ${{ inputs.ghToken}}
-      #   clean: false
-        
+
     - name: Set Branch Key
       id: set-key
       run: |
@@ -42,7 +34,6 @@ jobs:
           echo "BRANCH_KEY=master" >> $GITHUB_ENV
         else
           echo "BRANCH_KEY=UNKNOWN" >> $GITHUB_ENV
-        fi
 
     - name: Get Short Commit Hash
       id: get-hash
@@ -64,7 +55,11 @@ jobs:
       id: generate-version
       run: |
         APP_VERSION="4.5.24"
-        VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${GITHUB_REF_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
+        if [[ "${{ env.BRANCH_KEY }}" == "UNKNOWN" ]]; then
+          VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${{ env.INCREMENT }}"
+        else
+          VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${{ env.SHORT_COMMIT_HASH }}-${{ env.INCREMENT }}"
+        fi
         echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
     - name: Display Version String
