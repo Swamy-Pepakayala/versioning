@@ -37,21 +37,33 @@ jobs:
           fi
           
           echo "BRANCH_KEY=$BRANCH_KEY" >> $GITHUB_ENV
-
+          
       - name: Get previous incremental number
         id: get-incremental
         run: |
+          # Define cache directory
+          CACHE_DIR="${GITHUB_WORKSPACE}/.github/incremental"
+          mkdir -p $CACHE_DIR
+          
+          # Create cache key
           BRANCH_CACHE_KEY=$(echo $BRANCH_NAME | sed 's/[^a-zA-Z0-9]//g')
           echo "BRANCH_CACHE_KEY=$BRANCH_CACHE_KEY" >> $GITHUB_ENV
-          echo "BRANCH_CACHE_FILE=.github/workflows/${BRANCH_CACHE_KEY}.incremental" >> $GITHUB_ENV
-          if [[ -f $BRANCH_CACHE_FILE ]]; then
-            INCREMENTAL=$(cat $BRANCH_CACHE_FILE)
+          
+          # Define cache file path
+          CACHE_FILE="$CACHE_DIR/${BRANCH_CACHE_KEY}.incremental"
+          
+          # Read or initialize incremental number
+          if [[ -f $CACHE_FILE ]]; then
+            INCREMENTAL=$(cat $CACHE_FILE)
             INCREMENTAL=$((INCREMENTAL + 1))
           else
             INCREMENTAL=1
           fi
-          echo $INCREMENTAL > $BRANCH_CACHE_FILE
+          
+          # Save new incremental number
+          echo $INCREMENTAL > $CACHE_FILE
           echo "INCREMENTAL=$INCREMENTAL" >> $GITHUB_ENV
+
 
       - name: Construct version string
         run: |
