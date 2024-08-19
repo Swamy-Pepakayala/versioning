@@ -75,10 +75,11 @@ jobs:
           echo "version_string=$VERSION_STRING" >> $GITHUB_ENV
 
       - name: Output version string
-        run: echo "Generated version string:${{ env.version_string }}"
+        run: echo "Generated version string: ${{ env.version_string }}"
 
       - name: Push Increment File
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
-          git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/Swamy-Pepakayala/versioning.git HEAD:master
+          git remote set-url origin https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/Swamy-Pepakayala/versioning.git
+          git push origin HEAD:master
