@@ -38,21 +38,27 @@ jobs:
           
           echo "BRANCH_KEY=$BRANCH_KEY" >> $GITHUB_ENV
 
-      - name: Retrieve incremental number
-        id: retrieve-incremental
+      - name: Retrieve incremental number from GitHub API
+        id: get-incremental
         run: |
-          # Define file name for storing incremental number
-          INCREMENTAL_FILE="${GITHUB_WORKSPACE}/incremental-${BRANCH_NAME}.txt"
+          # Fetch the current value of the variable
+          RESPONSE=$(curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/INCREMENTAL-${BRANCH_NAME})
           
-          # Check if the file exists
-          if [[ -f $INCREMENTAL_FILE ]]; then
-            INCREMENTAL=$(cat $INCREMENTAL_FILE)
-            INCREMENTAL=$((INCREMENTAL + 1))
-          else
-            INCREMENTAL=1
+          # Parse the JSON response to get the variable value
+          INCREMENTAL=$(echo $RESPONSE | jq -r '.value')
+          
+          # If the variable doesn't exist, initialize it to 0
+          if [[ "$INCREMENTAL" == "null" ]]; then
+            INCREMENTAL=0
           fi
           
-          echo $INCREMENTAL > $INCREMENTAL_FILE
+          # Increment the value
+          INCREMENTAL=$((INCREMENTAL + 1))
+          
           echo "INCREMENTAL=$INCREMENTAL" >> $GITHUB_ENV
 
       - name: Construct version string
@@ -68,10 +74,12 @@ jobs:
       - name: Display version
         run: echo "Version:${{ env.VERSION }}"
 
-      - name: Upload incremental number as artifact
-        if: success()
-        uses: actions/upload-artifact@v3
-        with:
-          name: incremental-number
-          path: |
-            incremental-${BRANCH_NAME}.txt
+      - name: Update incremental number in GitHub API
+        run: |
+          curl -L \
+            -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/INCREMENTAL-${BRANCH_NAME} \
+            -d "{\"TEST_VERSION\":\"${INCREMENTAL}\"}"
