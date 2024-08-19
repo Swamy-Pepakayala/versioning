@@ -41,7 +41,9 @@ jobs:
       - name: Retrieve incremental number from GitHub API
         id: get-incremental
         run: |
-          VAR_NAME="INCREMENTAL-${BRANCH_NAME}"
+          # Sanitize variable name
+          SANITIZED_BRANCH_NAME=$(echo "${BRANCH_NAME}" | sed 's/[^a-zA-Z0-9_]/_/g')
+          VAR_NAME="INCREMENTAL_${SANITIZED_BRANCH_NAME}"
           echo "Variable name: $VAR_NAME"
           
           # Fetch the current value of the variable
@@ -77,11 +79,13 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           
       - name: Display version
-        run: echo "Version:${{ env.VERSION }}"
+        run: echo "Version: ${{ env.VERSION }}"
 
       - name: Ensure incremental variable exists
         run: |
-          VAR_NAME="INCREMENTAL-${BRANCH_NAME}"
+          # Sanitize variable name
+          SANITIZED_BRANCH_NAME=$(echo "${BRANCH_NAME}" | sed 's/[^a-zA-Z0-9_]/_/g')
+          VAR_NAME="INCREMENTAL_${SANITIZED_BRANCH_NAME}"
           
           # Check if the variable exists
           RESPONSE=$(curl -s -L \
@@ -105,7 +109,9 @@ jobs:
 
       - name: Update incremental number in GitHub API
         run: |
-          VAR_NAME="INCREMENTAL-${BRANCH_NAME}"
+          # Sanitize variable name
+          SANITIZED_BRANCH_NAME=$(echo "${BRANCH_NAME}" | sed 's/[^a-zA-Z0-9_]/_/g')
+          VAR_NAME="INCREMENTAL_${SANITIZED_BRANCH_NAME}"
           curl -L \
             -X PATCH \
             -H "Accept: application/vnd.github+json" \
