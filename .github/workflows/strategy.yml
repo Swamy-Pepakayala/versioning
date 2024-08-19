@@ -46,7 +46,7 @@ jobs:
           fi
 
       - name: Checkout Increment File
-        run: git fetch origin main && git checkout origin/main .increment || true
+        run: git fetch origin master && git checkout origin/master .increment || true
 
       - name: Increment Number
         id: increment
