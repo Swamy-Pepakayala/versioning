@@ -55,13 +55,13 @@ jobs:
           
           echo "Response: $RESPONSE"
           
-          # Parse the JSON response to get the variable value
-          INCREMENTAL=$(echo $RESPONSE | jq -r '.value')
+          # # Parse the JSON response to get the variable value
+          # INCREMENTAL=$(echo $RESPONSE | jq -r '.value')
           
-          # If the variable doesn't exist, initialize it to 0
-          if [[ "$INCREMENTAL" == "null" ]]; then
-            INCREMENTAL=0
-          fi
+          # # If the variable doesn't exist, initialize it to 0
+          # if [[ "$INCREMENTAL" == "null" ]]; then
+          #   INCREMENTAL=0
+          # fi
           
           # Increment the value
           INCREMENTAL=$((INCREMENTAL + 1))
