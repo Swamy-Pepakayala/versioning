@@ -62,7 +62,8 @@ jobs:
           if [[ "$BRANCH_KEY" == "UNKNOWN" ]]; then
             VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
           else
-            VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
+            VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${RUN_ATTEMPT}"
+            # -${{ env.NEW_INCREMENT }}
           fi
           echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
