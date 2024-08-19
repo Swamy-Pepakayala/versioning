@@ -37,33 +37,23 @@ jobs:
           fi
           
           echo "BRANCH_KEY=$BRANCH_KEY" >> $GITHUB_ENV
-          
-      - name: Get previous incremental number
-        id: get-incremental
+
+      - name: Retrieve incremental number
+        id: retrieve-incremental
         run: |
-          # Define cache directory
-          CACHE_DIR="${GITHUB_WORKSPACE}/.github/incremental"
-          mkdir -p $CACHE_DIR
+          # Define file name for storing incremental number
+          INCREMENTAL_FILE="${GITHUB_WORKSPACE}/incremental-${BRANCH_NAME}.txt"
           
-          # Create cache key
-          BRANCH_CACHE_KEY=$(echo $BRANCH_NAME | sed 's/[^a-zA-Z0-9]//g')
-          echo "BRANCH_CACHE_KEY=$BRANCH_CACHE_KEY" >> $GITHUB_ENV
-          
-          # Define cache file path
-          CACHE_FILE="$CACHE_DIR/${BRANCH_CACHE_KEY}.incremental"
-          
-          # Read or initialize incremental number
-          if [[ -f $CACHE_FILE ]]; then
-            INCREMENTAL=$(cat $CACHE_FILE)
+          # Check if the file exists
+          if [[ -f $INCREMENTAL_FILE ]]; then
+            INCREMENTAL=$(cat $INCREMENTAL_FILE)
             INCREMENTAL=$((INCREMENTAL + 1))
           else
             INCREMENTAL=1
           fi
           
-          # Save new incremental number
-          echo $INCREMENTAL > $CACHE_FILE
+          echo $INCREMENTAL > $INCREMENTAL_FILE
           echo "INCREMENTAL=$INCREMENTAL" >> $GITHUB_ENV
-
 
       - name: Construct version string
         run: |
@@ -76,11 +66,12 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Display version
-        run: echo "Version:${{ env.VERSION }}"
+        run: echo "Version: ${{ env.VERSION }}"
 
-      - name: Save incremental number
+      - name: Upload incremental number as artifact
         if: success()
-        uses: actions/cache@v3
+        uses: actions/upload-artifact@v3
         with:
-          path: .github/workflows/
-          key: ${{ runner.os }}-incremental-${{ env.BRANCH_CACHE_KEY }}
+          name: incremental-number
+          path: |
+            incremental-${BRANCH_NAME}.txt
