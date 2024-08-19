@@ -6,6 +6,7 @@ on:
       - 'REL'
       - 'master'
       - 'HTX'
+      - '**'
 
 jobs:
   deploy:
@@ -22,8 +23,52 @@ jobs:
           COMMIT_HASH=${GITHUB_SHA:0:7}
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
-          VERSION=$(echo $BRANCH_NAME | sed 's/[^a-zA-Z0-9]//g')-$COMMIT_HASH
+          
+          if [[ $BRANCH_NAME == release/* ]]; then
+            BRANCH_KEY="REL"
+          elif [[ $BRANCH_NAME == integration/* ]]; then
+            BRANCH_KEY="INT"
+          elif [[ $BRANCH_NAME == hotfix/* ]]; then
+            BRANCH_KEY="HTX"
+          elif [[ $BRANCH_NAME == master ]]; then
+            BRANCH_KEY="master"
+          else
+            BRANCH_KEY=""
+          fi
+          
+          echo "BRANCH_KEY=$BRANCH_KEY" >> $GITHUB_ENV
+
+      - name: Get previous incremental number
+        id: get-incremental
+        run: |
+          BRANCH_CACHE_KEY=$(echo $BRANCH_NAME | sed 's/[^a-zA-Z0-9]//g')
+          echo "BRANCH_CACHE_KEY=$BRANCH_CACHE_KEY" >> $GITHUB_ENV
+          echo "BRANCH_CACHE_FILE=.github/workflows/${BRANCH_CACHE_KEY}.incremental" >> $GITHUB_ENV
+          if [[ -f $BRANCH_CACHE_FILE ]]; then
+            INCREMENTAL=$(cat $BRANCH_CACHE_FILE)
+            INCREMENTAL=$((INCREMENTAL + 1))
+          else
+            INCREMENTAL=1
+          fi
+          echo $INCREMENTAL > $BRANCH_CACHE_FILE
+          echo "INCREMENTAL=$INCREMENTAL" >> $GITHUB_ENV
+
+      - name: Construct version string
+        run: |
+          APP_VERSION="4.5.24"
+          if [[ -n $BRANCH_KEY ]]; then
+            VERSION="$APP_VERSION-$BRANCH_KEY-$(echo $BRANCH_NAME | sed 's/[^a-zA-Z0-9]//g')-$COMMIT_HASH-$INCREMENTAL"
+          else
+            VERSION="$APP_VERSION-${GITHUB_RUN_ID}-$INCREMENTAL"
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Display version
         run: echo "Version:${{ env.VERSION }}"
+
+      - name: Save incremental number
+        if: success()
+        uses: actions/cache@v3
+        with:
+          path: .github/workflows/
+          key: ${{ runner.os }}-incremental-${{ env.BRANCH_CACHE_KEY }}
