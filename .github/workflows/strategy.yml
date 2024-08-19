@@ -1,85 +1,70 @@
-name: Incremental Version
+name: Increment Version Number
 
 on:
   push:
     branches:
-      - '**'
+      - master
+      - release/*
+      - integration/*
+      - hotfix/*
+      - "**"
 
 jobs:
   generate-version:
     runs-on: ubuntu-latest
-
-    env:
-      APP_VERSION: 4.5.24
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Get branch name
-        id: vars
-        run: echo "branch_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
-      - name: Get short commit hash
-        id: commit
-        run: echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
-      - name: Determine branch key and name
-        id: branchkey
+      - name: Fetch Incremental Number
+        id: fetch-increment
         run: |
-          BRANCH="${{ env.branch_name }}"
-          if [[ "$BRANCH" == release/* ]]; then
-            echo "branch_key=REL" >> $GITHUB_ENV
-            echo "branch_specific=${BRANCH#release/}" >> $GITHUB_ENV
-          elif [[ "$BRANCH" == integration/* ]]; then
-            echo "branch_key=INT" >> $GITHUB_ENV
-            echo "branch_specific=${BRANCH#integration/}" >> $GITHUB_ENV
-          elif [[ "$BRANCH" == hotfix/* ]]; then
-            echo "branch_key=HTX" >> $GITHUB_ENV
-            echo "branch_specific=${BRANCH#hotfix/}" >> $GITHUB_ENV
-          elif [[ "$BRANCH" == master ]]; then
-            echo "branch_key=master" >> $GITHUB_ENV
-            echo "branch_specific=master" >> $GITHUB_ENV
-          else
-            echo "branch_key=" >> $GITHUB_ENV
-            echo "branch_specific=$BRANCH" >> $GITHUB_ENV
-          fi
-
-      - name: Checkout Increment File
-        run: git fetch origin master && git checkout origin/master .increment || true
-
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/repos/${{ github.repository }}/contents/.increment \
+               -o increment.json
+          FILE_CONTENT=$(jq -r '.content' increment.json)
+          INCREMENT=$(echo "$FILE_CONTENT" | base64 -d)
+          echo "INCREMENT=$INCREMENT" >> $GITHUB_ENV
+          
       - name: Increment Number
         id: increment
         run: |
-          if [ ! -f .increment ]; then echo 0 > .increment; fi
-          LAST_INCREMENT=$(cat .increment)
-          NEW_INCREMENT=$((LAST_INCREMENT + 1))
-          echo $NEW_INCREMENT > .increment
-          echo "incremental_number=$NEW_INCREMENT" >> $GITHUB_ENV
+          NEW_INCREMENT=$(( ${{ env.INCREMENT }} + 1 ))
+          echo $NEW_INCREMENT | base64 | tr -d '\n' > new_increment.b64
+          echo "NEW_INCREMENT=$NEW_INCREMENT" >> $GITHUB_ENV
 
-      - name: Commit Increment File
+      - name: Update Incremental Number
         run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git add .increment
-          git commit -m "Update incremental number to ${{ env.incremental_number }}" || echo "No changes to commit"
+          FILE_SHA=$(jq -r '.sha' increment.json)
+          curl -X PUT -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               -d "{\"message\":\"Update increment number\",\"content\":\"$(cat new_increment.b64)\",\"sha\":\"$FILE_SHA\"}" \
+               https://api.github.com/repos/${{ github.repository }}/contents/.increment
 
-      - name: Generate version string
-        id: version
+      - name: Generate Version String
+        id: generate-version
         run: |
-          if [[ "${{ env.branch_key }}" != "" ]]; then
-            VERSION_STRING="${{ env.APP_VERSION }}-${{ env.branch_key }}-${{ env.branch_specific }}-${{ env.short_commit }}-${{ env.incremental_number }}"
-          else
-            VERSION_STRING="${{ env.APP_VERSION }}-${{ github.run_id }}-${{ env.incremental_number }}"
+          APP_VERSION="4.5.24"
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+          BRANCH_KEY="UNKNOWN"
+          if [[ "$BRANCH_NAME" == release* ]]; then
+            BRANCH_KEY="REL"
+          elif [[ "$BRANCH_NAME" == integration* ]]; then
+            BRANCH_KEY="INT"
+          elif [[ "$BRANCH_NAME" == hotfix* ]]; then
+            BRANCH_KEY="HTX"
+          elif [[ "$BRANCH_NAME" == master ]]; then
+            BRANCH_KEY="master"
           fi
-          echo "version_string=$VERSION_STRING" >> $GITHUB_ENV
+          SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          RUN_ATTEMPT=${{ github.run_attempt }}
+          if [[ "$BRANCH_KEY" == "UNKNOWN" ]]; then
+            VERSION_STRING="${APP_VERSION}-${{ github.run_id }}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
+          else
+            VERSION_STRING="${APP_VERSION}-${{ env.BRANCH_KEY }}-${BRANCH_NAME}-${SHORT_COMMIT_HASH}-${RUN_ATTEMPT}-${{ env.NEW_INCREMENT }}"
+          fi
+          echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
 
-      - name: Output version string
-        run: echo "Generated version string: ${{ env.version_string }}"
-
-      - name: Push Increment File
-        env:
-          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/Swamy-Pepakayala/versioning.git
-          git push origin HEAD:master
+      - name: Display Version String
+        run: echo "Version String is ${{ env.VERSION_STRING }}"
